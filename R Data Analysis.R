@@ -1,0 +1,343 @@
+## Data Cleaning----
+getwd()
+bird_data <- readxl::read_excel(file.choose())
+str(bird_data)
+head(bird_data)
+nrow(bird_data)
+library(janitor)
+
+bird_data <- janitor::clean_names(bird_data)
+
+names(bird_data)
+str(bird_data)
+
+library(dplyr)
+
+bird_data <- bird_data %>%
+  mutate(
+    species = as.factor(species),
+    year = as.factor(year),
+    weather_condition = as.factor(weather_condition),
+    habitat_type = as.factor(habitat_type),
+    foraging_substrate = as.factor(foraging_substrate),
+    foraging_technique = as.factor(foraging_technique),
+    anthropogenic_disturbance_level = as.factor(anthropogenic_disturbance_level)
+  )
+str(bird_data)
+table(bird_data$species)
+table(bird_data$year)
+range(bird_data$observation_date)
+
+## Descriptive Statistics----
+library(dplyr)
+
+summary_stats <- bird_data %>%
+  summarise(
+    Mean_Temperature = mean(ambient_temperature_c, na.rm = TRUE),
+    SD_Temperature = sd(ambient_temperature_c, na.rm = TRUE),
+    Min_Temperature = min(ambient_temperature_c, na.rm = TRUE),
+    Max_Temperature = max(ambient_temperature_c, na.rm = TRUE),
+    
+    Mean_Foraging_Duration = mean(foraging_duration_minutes, na.rm = TRUE),
+    SD_Foraging_Duration = sd(foraging_duration_minutes, na.rm = TRUE),
+    
+    Mean_Flock_Size = mean(flock_size, na.rm = TRUE),
+    SD_Flock_Size = sd(flock_size, na.rm = TRUE)
+  )
+
+summary_stats
+
+names(bird_data)
+summary_stats <- bird_data %>%
+  summarise(
+    Mean_Temperature = mean(ambient_temp_c, na.rm = TRUE),
+    SD_Temperature = sd(ambient_temp_c, na.rm = TRUE),
+    Min_Temperature = min(ambient_temp_c, na.rm = TRUE),
+    Max_Temperature = max(ambient_temp_c, na.rm = TRUE),
+    
+    Mean_Foraging_Duration = mean(foraging_duration_min, na.rm = TRUE),
+    SD_Foraging_Duration = sd(foraging_duration_min, na.rm = TRUE),
+    
+    Mean_Flock_Size = mean(flock_size, na.rm = TRUE),
+    SD_Flock_Size = sd(flock_size, na.rm = TRUE)
+  )
+
+summary_stats
+
+
+
+species_stats <- bird_data %>%
+  group_by(species) %>%
+  summarise(
+    Observations = n(),
+    Mean_Temperature = mean(ambient_temp_c, na.rm = TRUE),
+    SD_Temperature = sd(ambient_temp_c, na.rm = TRUE),
+    
+    Mean_Foraging_Duration = mean(foraging_duration_min, na.rm = TRUE),
+    SD_Foraging_Duration = sd(foraging_duration_min, na.rm = TRUE),
+    
+    Mean_Flock_Size = mean(flock_size, na.rm = TRUE),
+    SD_Flock_Size = sd(flock_size, na.rm = TRUE)
+  )
+
+species_stats
+
+write.csv(summary_stats, "Table1_Overall_Descriptive_Statistics.csv", row.names = FALSE)
+
+write.csv(species_stats, "Table2_Species_Descriptive_Statistics.csv", row.names = FALSE)
+
+## Figures----
+fig1 <- ggplot(bird_data, aes(x = ambient_temp_c)) +
+  geom_histogram(binwidth = 2, fill = "steelblue", colour = "black") +
+  labs(
+    title = "Distribution of Ambient Temperature During the Study Period",
+    x = "Ambient Temperature (°C)",
+    y = "Frequency"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
+fig1
+
+ggsave(
+  "Figure1_Temperature_Distribution.tiff",
+  plot = fig1,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+fig2 <- ggplot(bird_data, aes(x = species, y = foraging_duration_min, fill = species)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Species Comparison of Foraging Duration",
+    x = "Bird Species",
+    y = "Foraging Duration (minutes)"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none")
+
+fig2
+
+ggsave(
+  "Figure2_Foraging_Duration_Boxplot.tiff",
+  plot = fig2,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+shapiro.test(bird_data$foraging_duration_min)
+
+kruskal.test(foraging_duration_min ~ species, data = bird_data)
+
+install.packages("FSA")
+library(FSA)
+
+dunnTest(foraging_duration_min ~ species, data = bird_data, method = "bonferroni")
+
+fig3 <- ggplot(bird_data, aes(x = species, y = flock_size, fill = species)) +
+  geom_violin(alpha = 0.7) +
+  geom_boxplot(width = 0.1, colour = "black", alpha = 0.5) +
+  labs(
+    title = "Variation in Flock Size Among Bird Species",
+    x = "Bird Species",
+    y = "Flock Size"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none")
+
+fig3
+ggsave(
+  "Figure3_Flock_Size_ViolinPlot.tiff",
+  plot = fig3,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+fig4 <- ggplot(bird_data, aes(x = ambient_temp_c, y = foraging_duration_min)) +
+  geom_point(alpha = 0.6, colour = "darkgreen") +
+  geom_smooth(method = "lm", colour = "black", se = TRUE) +
+  labs(
+    title = "Relationship Between Ambient Temperature and Foraging Duration",
+    x = "Ambient Temperature (°C)",
+    y = "Foraging Duration (minutes)"
+  ) +
+  theme_minimal(base_size = 14)
+
+fig4
+ggsave(
+  "Figure4_Temperature_Foraging_Relationship.tiff",
+  plot = fig4,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+cor.test(
+  bird_data$ambient_temp_c,
+  bird_data$foraging_duration_min,
+  method = "spearman"
+)
+
+fig4_species <- ggplot(bird_data, aes(x = ambient_temp_c, y = foraging_duration_min, colour = species)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(
+    title = "Relationship Between Ambient Temperature and Foraging Duration Across Bird Species",
+    x = "Ambient Temperature (°C)",
+    y = "Foraging Duration (minutes)",
+    colour = "Species"
+  ) +
+  theme_minimal(base_size = 14)
+
+fig4_species
+ggsave(
+  "Figure4_Temperature_Foraging_BySpecies.tiff",
+  plot = fig4_species,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+bird_data$month <- format(bird_data$corrected_date, "%B")
+
+head(bird_data$corrected_date)
+class(bird_data$corrected_date)
+names(bird_data)
+
+bird_data$observation_date <- as.Date(bird_data$observation_date)
+bird_data$observation_date <- as.Date(bird_data$observation_date)
+bird_data$month <- format(bird_data$observation_date, "%B")
+table(bird_data$month)
+
+fig5 <- ggplot(bird_data, aes(x = month, y = ambient_temp_c)) +
+  geom_boxplot(fill = "orange", alpha = 0.7) +
+  labs(
+    title = "Seasonal Variation in Ambient Temperature During the Study Period",
+    x = "Month",
+    y = "Ambient Temperature (°C)"
+  ) +
+  theme_minimal(base_size = 14)
+
+fig5
+
+bird_data$month <- factor(
+  bird_data$month,
+  levels = c("July","August","September","October","November","December")
+)
+
+ggsave(
+  "Figure5_Seasonal_Temperature_Boxplot.tiff",
+  plot = fig5,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+kruskal.test(flock_size ~ species, data = bird_data)
+
+dunnTest(flock_size ~ species, data = bird_data, method = "bonferroni")
+
+fig6 <- ggplot(bird_data, aes(x = species, y = flock_size, fill = species)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Variation in Flock Size Among Bird Species",
+    x = "Species",
+    y = "Flock Size"
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "none")
+
+fig6
+
+ggsave(
+  "Figure6_Flock_Size_Species.tiff",
+  plot = fig6,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
+
+
+library(ggplot2)
+
+fig7 <- ggplot(bird_data, aes(x = habitat_type, y = foraging_duration_min, fill = habitat_type)) +
+  geom_boxplot() +
+  coord_flip() +   # makes the boxplots horizontal
+  labs(
+    title = "Foraging Duration Across Habitat Types",
+    x = "Habitat Type",
+    y = "Foraging Duration (minutes)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.text.y = element_text(size = 10)
+  )
+
+fig7
+
+library(ggplot2)
+
+fig7 <- ggplot(bird_data, aes(x = habitat_type, y = foraging_duration_min, fill = habitat_type)) +
+  geom_boxplot() +
+  coord_flip() +   # makes the boxplots horizontal
+  labs(
+    title = "Foraging Duration Across Habitat Types",
+    x = "Habitat Type",
+    y = "Foraging Duration (minutes)"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    plot.title = element_text(hjust = 0.5, size = 14, face = "bold"),
+    axis.text.y = element_text(size = 10)
+  )
+
+fig7
+ggsave("Figure7_ForagingDuration_Habitat_Clear.tiff",
+       plot = fig7,
+       width = 8,
+       height = 6,
+       dpi = 300)
+
+kruskal.test(foraging_duration_min ~ habitat_type, data = bird_data)
+
+glm_model <- glm(
+  foraging_duration_min ~ ambient_temp_c + species + habitat_type + anthropogenic_disturbance_level,
+  data = bird_data,
+  family = gaussian()
+)
+
+summary(glm_model)
+
+fig8 <- ggplot(bird_data, aes(x = ambient_temp_c, y = foraging_duration_min)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "glm", method.args = list(family = "gaussian"), color = "blue") +
+  labs(
+    title = "Effect of Ambient Temperature on Foraging Duration",
+    x = "Ambient Temperature (°C)",
+    y = "Foraging Duration (minutes)"
+  ) +
+  theme_minimal(base_size = 14)
+
+fig8
+ggsave(
+  "Figure8_GLM_Temperature_Foraging.tiff",
+  plot = fig8,
+  width = 8,
+  height = 6,
+  dpi = 600,
+  compression = "lzw"
+)
